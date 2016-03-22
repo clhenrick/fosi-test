@@ -1,0 +1,5 @@
+{
+  "regions": ["north_america", "south_america", "europe", "oceania", "africa", "asia", "middle_east"],
+  "countries": ["FRA", "PRT", "USA", "CAN", "AUS", "RUS", "SWE", "BRA", "NZL", "DZA", "COD", "AGO", "EGY"],
+  "states": ["USA.CA", "USA.NY", "USA.CO", "USA.TX", "USA.NM", "USA.WA", "USA.FL", "CAN.BC", "AUS.WA"]
+}
