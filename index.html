@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <link rel="stylesheet" href="//cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
-</head>
 <style type="text/css">
   html, body, #map {
     margin: 0; padding: 0;
@@ -75,6 +74,7 @@
     fill: #e9e9e9;
   }
 </style>
+</head>
 <body>
   <div id="map"></div>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
@@ -84,11 +84,12 @@
 var app = app || {};
 
 var map,
-    info,
+
+    startView,
     countries,
     states,
-    colors,
     highlight,
+    highlightActive,
     bboxes,
     regionsLayersRemoved,
     countriesLayersRemoved,
@@ -97,43 +98,53 @@ var map,
     mapPlaces = {},
     $mapTooltip;
 
-// region names that map to country / admin0 polygons
-countries = ['north_america', 'central_america', 'south_america',
-  'asia', 'africa', 'middle_east', 'europe', 'oceania'];
-
-// countries that map to states / provinces / admin1 polygons
-states = ['USA', 'CAN', 'AUS'];
-
-// for setting map view for some regions & countries
-// coordinates order is lat, lon
-bboxes = {
-  'north_america' : { center: [44.527843, -104.238281], zoom: 3 },
-  'central_america': { center: [15.434308, -82.714923], zoom: 5 },
-  'south_america': { center: [-25.158848, -60.787488], zoom: 3 },
-  'europe': { center: [47.960502, 15.732422], zoom: 4 },
-  'asia': { center: [32.863448, 93.419581], zoom: 4 },
-  'oceania': { center: [-25.306131, 136.709322], zoom: 4 },
-  'middle_east': { center: [27.467433, 48.287763], zoom: 5 },
-  'africa': { center: [6.424717, 18.291387], zoom: 3 },
-  'USA': { center: [37.579413, -100.239258], zoom: 4 },
-  'CAN': { center: [60.478879, -98.525391], zoom: 4 },
-  'RUS': { center: [62.734601, 100.634766], zoom: 3 },
-  'AUS': { center: [-26.941660, 134.252930], zoom: 4 },
-  'ESP': { center: [39.495563, -3.845215], zoom: 6 },
-  'FRA': { center: [46.694667, 2.680664], zoom: 5 },
-  'NLD': { center: [51.988263, 5.537109], zoom: 7 },
-  'PRT': { center: [39.833850, -8.129883], zoom: 6 },
-  'NOR': { center: [64.148952, 11.865234], zoom: 4 },
-  'NZL': { center: [-42.698586, 173.496094], zoom: 5 }
-};
-
-// highlight styles for polygons on mouse over
-highlight = {
-  weight: 2,
-  color: '#999'
-};
-
 app.map = (function(w, d, $, L) {
+  // starting center and zoom level of map
+  startView = {
+    center: [45, 0],
+    zoom: 2
+  };
+
+  // region names that map to country / admin0 polygons
+  countries = ['north_america', 'central_america', 'south_america',
+    'asia', 'africa', 'middle_east', 'europe', 'oceania'];
+
+  // countries that map to states / provinces / admin1 polygons
+  states = ['USA', 'CAN', 'AUS'];
+
+  // for setting map view for some regions & countries
+  // coordinates order is lat, lon
+  bboxes = {
+    'north_america' : { center: [44.527843, -104.238281], zoom: 3 },
+    'central_america': { center: [15.434308, -82.714923], zoom: 5 },
+    'south_america': { center: [-25.158848, -60.787488], zoom: 3 },
+    'europe': { center: [47.960502, 15.732422], zoom: 4 },
+    'asia': { center: [32.863448, 93.419581], zoom: 4 },
+    'oceania': { center: [-25.306131, 136.709322], zoom: 4 },
+    'middle_east': { center: [27.467433, 48.287763], zoom: 5 },
+    'africa': { center: [6.424717, 18.291387], zoom: 3 },
+    'USA': { center: [37.579413, -100.239258], zoom: 4 },
+    'CAN': { center: [60.478879, -98.525391], zoom: 4 },
+    'RUS': { center: [62.734601, 100.634766], zoom: 3 },
+    'AUS': { center: [-26.941660, 134.252930], zoom: 4 },
+    'ESP': { center: [39.495563, -3.845215], zoom: 6 },
+    'FRA': { center: [46.694667, 2.680664], zoom: 5 },
+    'NLD': { center: [51.988263, 5.537109], zoom: 7 },
+    'PRT': { center: [39.833850, -8.129883], zoom: 6 },
+    'NOR': { center: [64.148952, 11.865234], zoom: 4 },
+    'NZL': { center: [-42.698586, 173.496094], zoom: 5 }
+  };
+
+  // highlight styles for polygons on mouse over
+  highlight = {
+    weight: 2,
+    fillColor: '#CECECE'
+  };
+
+  highlightActive = {
+    weight: 2,
+    fillColor: '#A8DDB5'
+  };
 
   /* helper fns to grab an individual polygon / layer from it's parent L.geoJson group  */
   function getStatePolygon(country, state) {
@@ -156,13 +167,13 @@ app.map = (function(w, d, $, L) {
         countryPolygon = layer;
       }
     });
-    
+
     return countryPolygon;
   }
 
   function getRegionPolygon(region) {
     var regionPolygon = null;
-    
+
     mapLayers.regions.eachLayer(function(layer) {
       if (layer.feature.properties.region === region) {
         regionPolygon = layer;
@@ -172,11 +183,9 @@ app.map = (function(w, d, $, L) {
     return regionPolygon;
   }
 
-  /* handles app state from map:focus event */
+  /* handles receiving app state data from `map:focus` event */
   function receiveAppState(e, data) {
     e.preventDefault();
-
-    console.log('state recieved! ', data);
 
     var region = data.state[0],
         country = data.state[1],
@@ -185,13 +194,17 @@ app.map = (function(w, d, $, L) {
         regionPolygon,
         countryPolygon,
         statePolygon;
-    
-    if (!region && !country && !state) {
-      return;
-    }
 
-    // if just a region
-    if (region && !state && !country) {
+    if (!region && !country && !state) {
+      // for when user hits back button in navbar from a list of countries to regions list 
+      clearStatesProvinces();
+      regionPolygon = regionsLayersRemoved.getLayers()[0];
+      regionsLayersRemoved.removeLayer(regionPolygon);
+      mapLayers.regions.addLayer(regionPolygon);
+      map.setView(startView.center, startView.zoom);
+
+    } else if (region && !state && !country) {
+      // if just a region
       regionPolygon = getRegionPolygon(region);
 
       if (regionPolygon) {
@@ -203,27 +216,32 @@ app.map = (function(w, d, $, L) {
         view = bboxes[region];
         map.setView(view.center, view.zoom);
       }
-      
+
       clearStatesProvinces();
-      
+
     } else if (region && country && !state) {
       regionPolygon = getRegionPolygon(region);
-      
+
       if (regionPolygon) {
         selectRegion(regionPolygon);
       }
 
       countryPolygon = getCountryPolygon(region, country);
-      
+
       if (countryPolygon) {
-        zoomToFeature(countryPolygon);  
+        zoomToFeature(countryPolygon);
+      } else if (countriesLayersRemoved.getLayers().length) {
+        // likely when page loads on a state / province and user hits back UI button
+        countryPolygon = countriesLayersRemoved.getLayers()[0];
+        zoomToFeature(countryPolygon);
       }
 
       selectStatesProvinces(region, country);
-      
+
     } else if (region && country && state) {
+      state = state.split('.')[1];
       regionPolygon = getRegionPolygon(region);
-      
+
       if (regionPolygon) {
         selectRegion(regionPolygon);
       }
@@ -238,6 +256,7 @@ app.map = (function(w, d, $, L) {
     }
   }
 
+  /* triggers map:navigation:goto event with app state data when a polygon is clicked on */
   function emitState(arr) {
     if (typeof arr !== 'object' && !arr.length) {
       return;
@@ -248,13 +267,32 @@ app.map = (function(w, d, $, L) {
     $(document).trigger('FOSI:map:navigation:goto', data);
   }
 
+  function getInitialState() {
+    // see if there is intial state in the DOM
+    var initialState = $('#map').data();
+
+    if (!$.isEmptyObject(initialState)) {
+      var dataToEmit = [
+        initialState.defaultRegion,
+        initialState.defaultCountry,
+        initialState.defaultState
+      ];
+
+      $(document).trigger('FOSI:map:focus', { state: dataToEmit });
+    }
+  }
+
   function initMap() {
     map = L.map('map', {
       scrollWheelZoom: false,
-      center: [45,0],
-      zoom: 2,
-      loadingControl: true
+      center: startView.center,
+      zoom: startView.zoom,
+      zoomControl: false
     });
+
+    var zoomBtn = L.control.zoom({position: 'bottomright'});
+
+    zoomBtn.addTo(map);
 
     regionsLayersRemoved = L.featureGroup();
     countriesLayersRemoved = L.featureGroup();
@@ -266,13 +304,13 @@ app.map = (function(w, d, $, L) {
         country = props.adm0_a3 || props.sr_adm0_a3,
         postal = props.postal,
         geo = '';
-    
+
     if (region && !country && !postal) {
       geo = 'region';
     } else if (region && country && !postal) {
-      geo = 'admin0'
+      geo = 'admin0';
     } else if (country && postal) {
-      geo = 'admin1'
+      geo = 'admin1';
     } else {
       geo = null;
     }
@@ -286,7 +324,7 @@ app.map = (function(w, d, $, L) {
         country = props.adm0_a3 || props.sr_adm0_a3,
         postal = props.postal,
         name = '';
-    
+
     if (region && !country && !postal) {
       name = region;
     } else if (region && country && !postal) {
@@ -303,41 +341,58 @@ app.map = (function(w, d, $, L) {
   function hasCMSContent(geo, name) {
     // determines if the polygon should be styled and clickable
     // depends on data gained from the CMS
-    if (!mapPlaces) {
+    if (!mapPlaces || !geo || !name) {
       return;
     }
 
     if (geo === 'region' && mapPlaces.regions.indexOf(name) > -1) {
       return true;
-    } else if (geo === 'admin0' && mapPlaces.countries.indexOf(name) > -1) {
+    } else if (geo === 'admin0' && mapPlaces.countries.hasOwnProperty(name)) {
       return true;
-    } else if (geo === 'admin1' && mapPlaces.states.indexOf(name) > -1) {
+    } else if (geo === 'admin1' && mapPlaces.states.hasOwnProperty(name)) {
       return true;
     }
 
     return false;
   }
-  
-  function style(feature) {
-    // right now everything styled by region
-    // todo: style by whether or not polygon has CMS content
-    var region, className;
-    
-    if (feature.properties && feature.properties.region) {
-      region = feature.properties.region
-        .toLowerCase().split(' ').join('_');
+
+  function getCMSAttributes(geo, name) {
+    // grab the name and path for a given country or state / province
+    var attributes = {};
+
+    if (!mapPlaces || !geo || !name) {
+      return;
     }
 
+    if (geo === 'admin0' && mapPlaces.countries.hasOwnProperty(name)) {
+      attributes.name = mapPlaces.countries[name].name;
+      attributes.path = mapPlaces.countries[name].path;
+    } else if (geo === 'admin1' && mapPlaces.states.hasOwnProperty(name)) {
+      attributes.name = mapPlaces.states[name].name;
+      attributes.path = mapPlaces.states[name].path;
+    }
+
+    return attributes;
+  }
+
+  function style(feature) {
+    var className, fillColor;
+
     if (hasCMSContent(getMaxGeo(feature), getGeoName(feature))) {
-      className = region;
+      className = 'active';
+      fillColor = '#E0F3DB';
+      feature.properties.active = true;
     } else {
       className = 'not_active';
+      fillColor = '#CECECE';
+      feature.properties.active = false;
     }
-    
+
     return {
       weight: 1,
       opacity: 1,
-      color: 'white',
+      color: '#FFFFFF',
+      fillColor: fillColor,
       fillOpacity: 1,
       lineJoin: 'round',
       className: className
@@ -348,7 +403,7 @@ app.map = (function(w, d, $, L) {
     var obj = {};
     obj.x = e.clientX;
     obj.y = e.clientY;
-    
+
     return obj;
   }
 
@@ -363,13 +418,12 @@ app.map = (function(w, d, $, L) {
       var coords = getMouseCoords(e),
           winWidth = $(w).width(),
           ttWidth = $mapTooltip.width(),
-          winHeight = $(w).height(),
           ttHeight = $mapTooltip.height(),
           left = 0,
           top = 0;
 
       if (coords.x > (winWidth - ttWidth - 25)) {
-        left = coords.x - ttWidth - 25;
+        left = coords.x - ttWidth - 35;
       } else {
         left = coords.x + 12;
       }
@@ -377,9 +431,9 @@ app.map = (function(w, d, $, L) {
       if (coords.y < (ttHeight + 10)) {
         top = coords.y + 20;
       } else {
-        top = coords.y - 25;
+        top = coords.y - 40;
       }
-      
+
       $mapTooltip.css({
         'top': top,
         'left': left
@@ -411,16 +465,20 @@ app.map = (function(w, d, $, L) {
     if (label) {
       html = L.Util.template(template, {label: label});
     }
-    
-    $mapTooltip.append(html);
+
+    $mapTooltip.html(html);
     $mapTooltip.css('display', 'block');
   }
 
   function highlightFeature(e) {
-    var layer = e.target;
-    // console.log(e);
+    var layer = e.target,
+        active = layer.feature.properties.active;
 
-    layer.setStyle(highlight);
+    if (active) {
+      layer.setStyle(highlightActive);      
+    } else {
+      layer.setStyle(highlight);
+    }
 
     if (!L.Browser.ie && !L.Browser.opera) {
       layer.bringToFront();
@@ -477,9 +535,9 @@ app.map = (function(w, d, $, L) {
   /* layer selection fns */
 
   function selectRegion(regionPolygon) {
-    // loads countries polygons for a region & 
+    // loads countries polygons for a region &
     // removes the corresponding region polygon
-    
+
     if (typeof regionPolygon !== 'object') {
       regionPolygon = getRegionPolygon(regionPolygon);
       if (!regionPolygon) { return; }
@@ -490,7 +548,7 @@ app.map = (function(w, d, $, L) {
   }
 
   function selectStatesProvinces(region, adm0_a3) {
-    // handles adding admin1 data, removing & adding country polygon, 
+    // handles adding admin1 data, removing & adding country polygon,
     // removing any previous admin1 data
     // called when country polygon is clicked on or a region name is passed via app state event
     // `region` and `adm0_a3` are assummed to be strings
@@ -509,22 +567,21 @@ app.map = (function(w, d, $, L) {
     // remove any other existing admin1 data on the map
     var layerName, mLayer;
     var keys = Object.keys(mapLayers), i = keys.length;
-    var statesCounts = 0;
 
     while (--i) {
       layerName = keys[i];
       mLayer = mapLayers[layerName];
-      
-      if (states.indexOf(layerName) > -1 && adm0_a3 !== layerName
-        && map.hasLayer(mapLayers[layerName])) { 
+
+      if (states.indexOf(layerName) > -1 && adm0_a3 !== layerName &&
+        map.hasLayer(mapLayers[layerName])) {
         map.removeLayer(mapLayers[layerName]);
       }
     }
   }
 
   function clearStatesProvinces() {
-    // determine if state polygons should be removed 
-    // and if a country polyon should be added back 
+    // determine if state polygons should be removed
+    // and if a country polyon should be added back
     if (countriesLayersRemoved.getLayers().length) {
       var mLayer = countriesLayersRemoved.getLayers()[0];
       var countryName = mLayer.feature.properties.adm0_a3;
@@ -537,8 +594,9 @@ app.map = (function(w, d, $, L) {
   }
 
   /* onEachFeature is for L.geoJson options */
+
   function determineOnEachFeature(featureName) {
-    // which onEachFeature fn does a L.geoJson layer get?
+    // which onEachFeature does a layer get?
     if (featureName === 'regions') {
       return regionsOnEachFeature;
     } else if (countries.indexOf(featureName) > -1) {
@@ -559,11 +617,11 @@ app.map = (function(w, d, $, L) {
       mouseout: handleMouseOut,
       click: function(e) {
         if (hasCMSContent('region', regionName)) {
+          zoomToFeature(e);
           selectRegion(layer);
           clearStatesProvinces();
           hideTooltip();
           emitState([regionName]);
-          zoomToFeature(e);
         }
       }
     });
@@ -574,16 +632,27 @@ app.map = (function(w, d, $, L) {
         regionName = props.region
           .split(' ').join('_').toLowerCase(),
         countryName = props.adm0_a3;
-    
+
+    if (hasCMSContent('admin0', countryName)) {
+        var cmsData = getCMSAttributes('admin0', countryName);
+        props.path = cmsData.path;
+        props.name_fos = cmsData.name;
+    }
+
     layer.on({
       mouseover: handleMouseOver,
       mouseout: handleMouseOut,
       click: function(e) {
         if (hasCMSContent('admin0', countryName)) {
-          zoomToFeature(e);
-          selectStatesProvinces(regionName, props.adm0_a3);
-          hideTooltip();
-          emitState([regionName, countryName]);
+          // if country has no admin1, set window.location
+          if (!(states.indexOf(countryName) > -1)) {
+            w.location = props.path;
+          } else {
+            zoomToFeature(e);
+            selectStatesProvinces(regionName, props.adm0_a3);
+            hideTooltip();
+            emitState([regionName, countryName]);
+          }
         }
       }
     });
@@ -596,15 +665,22 @@ app.map = (function(w, d, $, L) {
         countryName = props.sr_adm0_a3,
         stateName = props.postal,
         countryState = countryName + '.' + stateName;
-    
+
+    if (hasCMSContent('admin1', countryState)) {
+        var cmsData = getCMSAttributes('admin1', countryState);
+        props.path = cmsData.path;
+        props.name_fos = cmsData.name;
+    }
+
     layer.on({
       mouseover: handleMouseOver,
       mouseout: handleMouseOut,
       click: function(e) {
         if (hasCMSContent('admin1', countryState)) {
-          zoomToFeature(e);
-          hideTooltip();
-          emitState([regionName, countryName, stateName]);
+          // zoomToFeature(e);
+          // hideTooltip();
+          // emitState([regionName, countryName, countryState]);
+          w.location = props.path;
         }
       }
     });
@@ -649,9 +725,9 @@ app.map = (function(w, d, $, L) {
     var layerName = region.properties.region.split(' ').join('_');
     mapLayers[layerName] = getTopoJSONLayer(layerName);
     var mapLayer = mapLayers[layerName];
-    
+
     if (!map.hasLayer(mapLayer)) {
-      mapLayer.addTo(map);  
+      mapLayer.addTo(map);
     }
 
     // remove any existing country polygons if already on the map
@@ -672,14 +748,14 @@ app.map = (function(w, d, $, L) {
     }
 
     // if no countries are displayed, just remove the region polygon from mapLayers.regions
-    if (!regionsLayersRemoved.getLayers().length) 
+    if (!regionsLayersRemoved.getLayers().length)
     {
       regionsLayersRemoved.addLayer(region);
       mapLayers.regions.removeLayer(region);
-    } 
+    }
     // other wise if a region polygon has already been removed
     // add it back before removing the current region
-    else if (regionsLayersRemoved.getLayers().length) 
+    else if (regionsLayersRemoved.getLayers().length)
     {
       var layerToAdd = regionsLayersRemoved.getLayers()[0];
       regionsLayersRemoved.removeLayer(layerToAdd);
@@ -695,11 +771,17 @@ app.map = (function(w, d, $, L) {
     mapLayers.regions.addTo(map);
   }
 
+  function firstLoad() {
+    // when the map first loads check for inital state & load the regions polygons
+    loadRegions();
+    getInitialState();
+  }
+
   function getTopoJSONLayer(featureName) {
     // this actually returns a L.geoJson layer, not a topojson layer!
     var feature, onEachFeature, layer;
-    
-    if (!mapLayers[featureName]) 
+
+    if (!mapLayers[featureName])
     {
       feature = topojson.feature(topoData, topoData.objects[featureName]);
       onEachFeature = determineOnEachFeature(featureName);
@@ -708,7 +790,7 @@ app.map = (function(w, d, $, L) {
         onEachFeature: onEachFeature
       });
     }
-    else 
+    else
     {
       layer = mapLayers[featureName];
     }
@@ -716,32 +798,31 @@ app.map = (function(w, d, $, L) {
     return layer;
   }
 
-  function loadTopoJSON() {
+  function loadTopoJSON(callback) {
     $.getJSON('world.json', function(data) {
       topoData = data;
-      loadRegions();
+      
+      firstLoad();
     });
   }
 
   function getMapPlaces(callback) {
-    $.getJSON('map-places.json', function(data){
-      // remove JSON.parse() for Rails integration
+    $.getJSON('new-map-places.json', function(data){
       mapPlaces = data;
-      if (callback && typeof callback === 'function') {
-        callback();
-      }
+      
+      loadTopoJSON();
     });
   }
 
   function init() {
     initMap();
-    getMapPlaces(loadTopoJSON);
     createTooltip();
+    getMapPlaces();
     // test via: $(document).trigger('map:focus', {state: ['africa', null, null] });
     $(document).on('FOSI:map:focus', receiveAppState);
     // test listener for emiting state, remove for production
     $(document).on('FOSI:map:navigation:goto', function(e, data) {
-      console.log(data);
+      // console.log(data);
     });
 
     // position the .map-tooltip
@@ -749,16 +830,13 @@ app.map = (function(w, d, $, L) {
   }
 
   return {
-    map: map,
-    init: init,
-    getTopoJSONLayer: getTopoJSONLayer
+    init: init
   };
 
 })(window, document, jQuery, L);
 
-$(document).ready(function() {
-  app.map.init();
-});
+$(document).ready(app.map.init);
+// app.map.init();
 
   </script>
 </body>
