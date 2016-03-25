@@ -798,18 +798,16 @@ app.map = (function(w, d, $, L) {
     return layer;
   }
 
-  function loadTopoJSON(callback) {
-    $.getJSON('world.json', function(data) {
+  function loadTopoJSON() {
+    $.getJSON('./fosi.json', function(data) {
       topoData = data;
-      
       firstLoad();
     });
   }
 
-  function getMapPlaces(callback) {
-    $.getJSON('new-map-places.json', function(data){
+  function getMapPlaces() {
+    $.getJSON('./new-map-places.json', function(data){
       mapPlaces = data;
-      
       loadTopoJSON();
     });
   }
