@@ -1,0 +1,47 @@
+{
+  "regions": ["north_america", "central_america", "europe", "africa"],
+  "countries": {
+    "AFG": {
+      "name": "Afghanistan",
+      "path": "/afghanistan"
+    },
+    "ALD": {
+      "name": "Aland Islands",
+      "path": "/aland-islands"
+    },
+    "ALB": {
+      "name": "Albania",
+      "path": "/albania"
+    },
+    "CAN": {
+      "name": "Canada",
+      "path": "/canada"
+    },
+    "CUB": {
+      "name": "Cuba",
+      "path": "/cuba"
+    },
+    "EUR": {
+      "name": "European Union",
+      "path": "/european-union"
+    },
+    "USA": {
+      "name": "United States",
+      "path": "/united-states"
+    }
+  },
+  "states": {
+    "CAN.MB": {
+      "name": "Manitoba",
+      "path": "/canada/manitoba"
+    },
+    "CAN.ON": {
+      "name": "Ontario",
+      "path": "/canada/ontario"
+    },
+    "CAN.QC": {
+      "name": "Québec",
+      "path": "/canada/quebec"
+    }
+  }
+}
