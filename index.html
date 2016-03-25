@@ -293,12 +293,6 @@ app.map = (function(w, d, $, L) {
 
     var zoomBtn = L.control.zoom({position: 'bottomright'});
 
-    var loadingControl = L.Control.loading({
-        separate: true
-    });
-
-    map.addControl(loadingControl);
-
     zoomBtn.addTo(map);
 
     regionsLayersRemoved = L.featureGroup();
