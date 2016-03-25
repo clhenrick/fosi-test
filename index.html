@@ -3,82 +3,84 @@
 <head>
   <meta charset="utf-8">
   <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
-<style type="text/css">
-  html, body, #map {
-    margin: 0; padding: 0;
-    height: 100%; width: 100%;
-  }
+  <link rel="stylesheet" href="leaflet-loading.css" />
+  <style type="text/css">
+    html, body, #map {
+      margin: 0; padding: 0;
+      height: 100%; width: 100%;
+    }
 
-  #map {
-    background-color: hsl(200, 420%, 82%);
-  }
+    #map {
+      background-color: hsl(200, 420%, 82%);
+    }
 
-  main {
-    height: 100%;
-  }
+    main {
+      height: 100%;
+    }
 
-  .map-tooltip {
-    height: 25px;
-    display: none;
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    background-color: #fff;
-    background-color: rgba(255,255,255,0.8);
-    padding: 0 4px;
-    z-index: 999;
-  }
+    .map-tooltip {
+      height: 25px;
+      display: none;
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      background-color: #fff;
+      background-color: rgba(255,255,255,0.8);
+      padding: 0 4px;
+      z-index: 999;
+    }
 
-  .map-tooltip p {
-    text-transform: capitalize;
-    color: #333;
-    margin: 0;
-    padding: 0;
-    font-family: sans-serif;
-    line-height: 1.6;
-  }
+    .map-tooltip p {
+      text-transform: capitalize;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      line-height: 1.6;
+    }
 
-  .south_america {
-    fill: #fbb4ae;
-  }
+    .south_america {
+      fill: #fbb4ae;
+    }
 
-  .north_america {
-    fill: #b3cde3;
-  }
+    .north_america {
+      fill: #b3cde3;
+    }
 
-  .central_america {
-    fill: #ccebc5;
-  }
-  
-  .europe {
-    fill: #decbe4;
-  }
-  
-  .asia {
-    fill: #fed9a6;
-  }
-  
-  .oceania {
-    fill: #ffffcc;
-  }
-  
-  .africa {
-    fill: #e5d8bd;
-  }
-  
-  .middle_east {
-    fill: #fddaec;
-  }
+    .central_america {
+      fill: #ccebc5;
+    }
+    
+    .europe {
+      fill: #decbe4;
+    }
+    
+    .asia {
+      fill: #fed9a6;
+    }
+    
+    .oceania {
+      fill: #ffffcc;
+    }
+    
+    .africa {
+      fill: #e5d8bd;
+    }
+    
+    .middle_east {
+      fill: #fddaec;
+    }
 
-  .not_active {
-    fill: #e9e9e9;
-  }
-</style>
+    .not_active {
+      fill: #e9e9e9;
+    }
+  </style>
 </head>
 <body>
   <div id="map"></div>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
   <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+  <script src="leaflet-loading.js"></script>
   <script src="http://d3js.org/topojson.v1.min.js"></script>
   <script type="text/javascript">
 var app = app || {};
@@ -96,7 +98,8 @@ var map,
     topoData,
     mapLayers = {},
     mapPlaces = {},
-    $mapTooltip;
+    $mapTooltip,
+    layerCount = 0;
 
 app.map = (function(w, d, $, L) {
   // starting center and zoom level of map
@@ -291,6 +294,12 @@ app.map = (function(w, d, $, L) {
     });
 
     var zoomBtn = L.control.zoom({position: 'bottomright'});
+
+    var loadingControl = L.Control.loading({
+        separate: true
+    });
+
+    map.addControl(loadingControl);
 
     zoomBtn.addTo(map);
 
@@ -593,6 +602,22 @@ app.map = (function(w, d, $, L) {
     }
   }
 
+  function countLayers(layer) {
+    // for displaying loading GIF
+
+    if (!layer) {
+      return;
+    }
+
+    if (!layer._layers) {
+      layerCount += 1;
+    } else {
+      Object.keys(layer._layers).forEach(function(l) {
+        layerCount += 1;
+      });
+    }
+  }
+
   /* onEachFeature is for L.geoJson options */
 
   function determineOnEachFeature(featureName) {
@@ -611,6 +636,8 @@ app.map = (function(w, d, $, L) {
   function regionsOnEachFeature(feature, layer) {
     var regionName = feature.properties.region
       .split(' ').join('_').toLowerCase();
+
+    countLayers(layer);
 
     layer.on({
       mouseover: handleMouseOver,
@@ -638,6 +665,8 @@ app.map = (function(w, d, $, L) {
         props.path = cmsData.path;
         props.name_fos = cmsData.name;
     }
+
+    countLayers(layer);
 
     layer.on({
       mouseover: handleMouseOver,
@@ -671,6 +700,8 @@ app.map = (function(w, d, $, L) {
         props.path = cmsData.path;
         props.name_fos = cmsData.name;
     }
+
+    countLayers(layer);
 
     layer.on({
       mouseover: handleMouseOver,
@@ -812,19 +843,39 @@ app.map = (function(w, d, $, L) {
     });
   }
 
-  function init() {
-    initMap();
-    createTooltip();
-    getMapPlaces();
+  function onLayerAdd() {
+    map.on('layeradd', function(){
+      if (layerCount > 0) {
+        // display loading GIF
+        layerCount -= 1;
+
+        if (layerCount === 0) {
+          // hide loading GIF
+          layerCount = 0;
+          console.log('all layers added!');
+        }
+      } 
+    });
+  }
+
+  function listeners() {
     // test via: $(document).trigger('map:focus', {state: ['africa', null, null] });
     $(document).on('FOSI:map:focus', receiveAppState);
     // test listener for emiting state, remove for production
     $(document).on('FOSI:map:navigation:goto', function(e, data) {
       // console.log(data);
     });
-
     // position the .map-tooltip
     $('#map').mousemove(positionTooltip);
+    // display the loading GIF when layers are being added to the map
+    onLayerAdd();
+  }
+
+  function init() {
+    initMap();
+    createTooltip();
+    getMapPlaces();
+    listeners();
   }
 
   return {
