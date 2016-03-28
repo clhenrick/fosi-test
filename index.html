@@ -822,7 +822,15 @@ app.map = (function(w, d, $, L) {
   }
 
   function loadTopoJSON() {
-    $.getJSON('./fosi.json', function(data) {
+    var dataToLoad;
+
+    if (L.Browser.ie) {
+      dataToLoad = 'fosi_lowres.json';
+    } else {
+      dataToLoad = 'fosi.json';
+    }
+
+    $.getJSON(dataToLoad, function(data) {
       topoData = data;
       firstLoad();
     });
