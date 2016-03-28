@@ -48,6 +48,7 @@
       margin: -20px 0 0 -50px;
       padding: 10px;
       background-color: rgba(255, 255, 255, 0.8);
+      z-index: 10000;
     }
 
     .loading-msg p {
@@ -533,7 +534,7 @@ app.map = (function(w, d, $, L) {
       regionPolygon = getRegionPolygon(regionPolygon);
       if (!regionPolygon) { return; }
     }
-
+    displayLoadingMsg();
     showCountries(regionPolygon.feature);
     removeRegionPolygon(regionPolygon);
   }
@@ -704,7 +705,6 @@ app.map = (function(w, d, $, L) {
     var mLayer = mapLayers[country];
 
     if (!map.hasLayer(mLayer)) {
-      displayLoadingMsg();
       map.addLayer(mLayer);
     }
   }
@@ -790,12 +790,12 @@ app.map = (function(w, d, $, L) {
     var mapDiv = d.getElementById('map');
     L.DomUtil.create('div', 'loading-msg', mapDiv);
     $loadingMsg = $('.loading-msg');
+    $loadingMsg.addClass('hidden');
     $loadingMsg.html('<p>Loading...</p>');
   }
 
   function displayLoadingMsg() {
     if ($loadingMsg.hasClass('hidden')) {
-      debugger;
       console.log('loading...');
       $loadingMsg.removeClass('hidden');
     }
@@ -889,7 +889,7 @@ app.map = (function(w, d, $, L) {
     initMap();
     createTooltip();
     createLoadingMsg();
-    displayLoadingMsg();
+    // displayLoadingMsg();
     getMapPlaces();
     listeners();
   }
