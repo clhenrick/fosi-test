@@ -86,6 +86,7 @@ var map,
     mapPlaces = {},
     $mapTooltip,
     $loadingMsg,
+    dfd,
     layerCount = 0;
 
 app.map = (function(w, d, $, L) {
@@ -703,6 +704,7 @@ app.map = (function(w, d, $, L) {
     var mLayer = mapLayers[country];
 
     if (!map.hasLayer(mLayer)) {
+      displayLoadingMsg();
       map.addLayer(mLayer);
     }
   }
@@ -739,6 +741,7 @@ app.map = (function(w, d, $, L) {
     var mapLayer = mapLayers[layerName];
 
     if (!map.hasLayer(mapLayer)) {
+      displayLoadingMsg();
       mapLayer.addTo(map);
     }
 
@@ -856,9 +859,8 @@ app.map = (function(w, d, $, L) {
   function onLayerAdd() {
     map.on('layeradd', function(){
       if (layerCount > 0) {
+        // display loading GIF
         layerCount -= 1;
-        displayLoadingMsg();
-        console.log(layerCount);
 
         if (layerCount === 0) {
           // hide loading GIF
