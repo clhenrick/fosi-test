@@ -1,5 +1,5 @@
 {
-  "regions": ["north_america", "central_america", "europe", "africa"],
+  "regions": ["north_america", "central_america", "europe", "africa", "oceania", "middle_east"],
   "countries": {
     "AFG": {
       "name": "Afghanistan",
@@ -28,6 +28,10 @@
     "USA": {
       "name": "United States",
       "path": "/united-states"
+    },
+    "AUS": {
+      "name": "Australia",
+      "path": "/australia"
     }
   },
   "states": {

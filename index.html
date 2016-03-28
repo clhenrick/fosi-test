@@ -10,6 +10,7 @@
     }
 
     #map {
+      position: relative;
       background-color: hsl(200, 420%, 82%);
     }
 
@@ -38,41 +39,28 @@
       line-height: 1.6;
     }
 
-    .south_america {
-      fill: #fbb4ae;
+    .loading-msg {
+      height: 40px;
+      width: 100px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin: -20px 0 0 -50px;
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.8);
     }
 
-    .north_america {
-      fill: #b3cde3;
+    .loading-msg p {
+      font-family: sans-serif;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
     }
 
-    .central_america {
-      fill: #ccebc5;
-    }
-    
-    .europe {
-      fill: #decbe4;
-    }
-    
-    .asia {
-      fill: #fed9a6;
-    }
-    
-    .oceania {
-      fill: #ffffcc;
-    }
-    
-    .africa {
-      fill: #e5d8bd;
-    }
-    
-    .middle_east {
-      fill: #fddaec;
+    .hidden {
+      display: none;
     }
 
-    .not_active {
-      fill: #e9e9e9;
-    }
   </style>
 </head>
 <body>
@@ -97,6 +85,7 @@ var map,
     mapLayers = {},
     mapPlaces = {},
     $mapTooltip,
+    $loadingMsg,
     layerCount = 0;
 
 app.map = (function(w, d, $, L) {
@@ -794,6 +783,27 @@ app.map = (function(w, d, $, L) {
     mapLayers.regions.addTo(map);
   }
 
+  function createLoadingMsg() {
+    var mapDiv = d.getElementById('map');
+    L.DomUtil.create('div', 'loading-msg', mapDiv);
+    $loadingMsg = $('.loading-msg');
+    $loadingMsg.html('<p>Loading...</p>');
+  }
+
+  function displayLoadingMsg() {
+    if ($loadingMsg.hasClass('hidden')) {
+      debugger;
+      console.log('loading...');
+      $loadingMsg.removeClass('hidden');
+    }
+  }
+
+  function hideLoadingMsg() {
+    if (!$loadingMsg.hasClass('hidden')) {
+      $loadingMsg.addClass('hidden');
+    }
+  }
+
   function firstLoad() {
     // when the map first loads check for inital state & load the regions polygons
     loadRegions();
@@ -846,11 +856,13 @@ app.map = (function(w, d, $, L) {
   function onLayerAdd() {
     map.on('layeradd', function(){
       if (layerCount > 0) {
-        // display loading GIF
         layerCount -= 1;
+        displayLoadingMsg();
+        console.log(layerCount);
 
         if (layerCount === 0) {
           // hide loading GIF
+          hideLoadingMsg();
           layerCount = 0;
           console.log('all layers added!');
         }
@@ -874,6 +886,8 @@ app.map = (function(w, d, $, L) {
   function init() {
     initMap();
     createTooltip();
+    createLoadingMsg();
+    displayLoadingMsg();
     getMapPlaces();
     listeners();
   }
