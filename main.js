@@ -822,7 +822,7 @@ function listeners() {
 
 function init() {
   initMap();
-  createTooltip();
+  // createTooltip();
   createLoadingMsg();
   displayLoadingMsg();
   getMapPlaces();
