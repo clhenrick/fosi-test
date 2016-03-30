@@ -559,7 +559,7 @@ function regionsOnEachFeature(feature, layer) {
         zoomToFeature(e);
         selectRegion(layer);
         clearStatesProvinces();
-        hideTooltip();
+        // hideTooltip();
         emitState([regionName]);
       }
     }
@@ -592,7 +592,7 @@ function countriesOnEachFeature(feature, layer) {
           displayLoadingMsg();
           zoomToFeature(e);
           selectStatesProvinces(regionName, props.adm0_a3);
-          hideTooltip();
+          // hideTooltip();
           emitState([regionName, countryName]);
         }
       }
