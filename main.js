@@ -364,7 +364,7 @@ function positionTooltip(e) {
 /* handle mouseover events on polygons */
 function handleMouseOver(e) {
   highlightFeature(e);
-  revealTooltip(e);
+  // revealTooltip(e);
 }
 
 function revealTooltip(e) {
@@ -408,7 +408,7 @@ function highlightFeature(e) {
 /* handle mouseout events on polygons */
 function handleMouseOut(e) {
   resetHighlight(e);
-  hideTooltip(e);
+  // hideTooltip(e);
 }
 
 function hideTooltip(e) {
