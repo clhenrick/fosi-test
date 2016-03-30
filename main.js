@@ -811,7 +811,7 @@ function listeners() {
   });
   
   // position the .map-tooltip
-  $('#map').mousemove(positionTooltip);
+  // $('#map').mousemove(positionTooltip);
   
   // hide the loading GIF when layers are being added to the map
   map.on('moveend', function(e){
